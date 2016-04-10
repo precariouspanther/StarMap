@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=utf-8>
+    <title>Particles</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            background: #160831 radial-gradient(#160831, #160831, #000);
+
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+</head>
+<body>
+
+<script>
+    var Stage = function (el) {
+        el = $(el);
+        var $scope = {
+            width: el.width() * 1,
+            height: el.height() * 1,
+            threshold: 150,
+            ctx: el[0].getContext('2d'),
+            nodes: [],
+            init: function () {
+                $scope.ctx.lineWidth = 1;
+                $scope.ctx.globalCompositeOperation = "multiply";
+                //$scope.ctx.globalCompositeOperation = "hard-light";
+                //$scope.ctx.globalCompositeOperation = "destination-over";
+            },
+            addNode: function (node) {
+                $scope.nodes.push(node);
+            },
+            removeNode: function (node) {
+                $scope.nodes.splice($scope.nodes.indexOf(node), 1);
+            },
+            draw: function () {
+                $scope.ctx.clearRect(0, 0, $scope.width, $scope.height);
+
+                var thresholdSquare = Math.pow($scope.threshold, 2);
+                $.each($scope.nodes, function (i, node) {
+                    if(!node){
+                        return;
+                    }
+                    node.draw($scope.ctx);
+
+                    //Joins
+                    $.each($scope.nodes, function (x, joinNode) {
+                        if(!joinNode){
+                            return;
+                        }
+                        if (joinNode == node) return;
+                        var d2 = joinNode.position.distanceSquare(node.position);
+                        //console.log(d2);
+                        if (d2 < thresholdSquare) {
+                            var distance = Math.sqrt(d2);
+                            var alpha = (($scope.threshold - distance) / $scope.threshold) * 0.4;
+                            //var alpha = 0.3;
+                            $scope.ctx.lineWidth = alpha * 3;
+                            $scope.ctx.strokeStyle = 'rgba(0,219,255,' + alpha + ')';
+                            $scope.ctx.beginPath();
+                            $scope.ctx.moveTo(node.position.x, node.position.y);
+                            $scope.ctx.lineTo(joinNode.position.x, joinNode.position.y);
+                            $scope.ctx.stroke();
+
+                            $scope.ctx.lineWidth = alpha * 20;
+                            var alphaRandom = (Math.random() * 0.5 + alpha) / 11;
+                            $scope.ctx.strokeStyle = 'rgba(0,219,255,' + alphaRandom + ')';
+                            $scope.ctx.beginPath();
+                            $scope.ctx.moveTo(node.position.x, node.position.y);
+                            $scope.ctx.lineTo(joinNode.position.x, joinNode.position.y);
+                            $scope.ctx.stroke();
+                        }
+                    });
+
+                });
+
+                window.requestAnimationFrame(scene.draw);
+            }
+        };
+        $scope.init();
+        return $scope;
+    };
+
+
+    var Particle = function (position, stage) {
+        var $scope = {
+            stage: stage,
+            radius: 2,
+            acceleration: new Vector2(),
+            velocity: new Vector2(Math.random() - 0.5, Math.random() - 0.5),
+            position: position,
+            maxSpeed: 3,
+            colour: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
+            init: function () {
+                $scope.stage.addNode($scope);
+                $scope.radius = Math.random() * 2 + 0.05;
+                $scope.maxSpeed = Math.random() * 5 + 0.1;
+                if(Math.random() > 0.7) {
+                    $scope.colour.red = Math.round(Math.random() * 200 + 55);
+                    $scope.colour.green = Math.round(Math.random() * 200 + 55);
+                    $scope.colour.blue = Math.round(Math.random() * 200 + 55);
+                }
+            },
+            draw: function (ctx) {
+                //Move
+                $scope.acceleration.add(new Vector2(Math.random() - 0.5, Math.random() - 0.5), 0.1);
+                $scope.acceleration.clampAbs($scope.maxSpeed);
+
+                $scope.velocity.add($scope.acceleration, 0.1);
+
+                if ($scope.position.x + $scope.velocity.x > $scope.stage.width || $scope.position.x + $scope.velocity.x < 1) {
+                    //Bounce X
+                    $scope.velocity.x *= -0.9;
+                    $scope.acceleration.x *= -0.9;
+
+                }
+                if ($scope.position.y + $scope.velocity.y > $scope.stage.height || $scope.position.y + $scope.velocity.y < 1) {
+                    //Bounce Y
+                    $scope.velocity.y *= -0.9;
+                    $scope.acceleration.y *= -0.9;
+                }
+                $scope.velocity.clampAbs($scope.maxSpeed);
+
+                $scope.position.add($scope.velocity, 0.1);
+
+                var rand = (Math.random() * 0.1) + 0.1;
+                //Draw
+                ctx.lineWidth = 1;
+                ctx.fillStyle = 'rgba(' + $scope.colour.red + ',' + $scope.colour.green + ',' + $scope.colour.blue + ',0.9)';
+                //ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.beginPath();
+                ctx.arc($scope.position.x, $scope.position.y, $scope.radius, 0, 360, false);
+                ctx.fill();
+
+
+
+                var grd = ctx.createRadialGradient($scope.position.x, $scope.position.y, 1, $scope.position.x, $scope.position.y, Math.ceil($scope.radius * 15));
+                grd.addColorStop(0, 'rgba(' + $scope.colour.red + ',' + $scope.colour.green + ',' + $scope.colour.blue + ',' + rand + ')');
+                grd.addColorStop(0.6, 'rgba(' + $scope.colour.red + ',' + $scope.colour.green + ',' + $scope.colour.blue + ',0)');
+                grd.addColorStop(1, 'rgba(' + $scope.colour.red + ',' + $scope.colour.green + ',' + $scope.colour.blue + ',0)');
+
+                ctx.fillStyle = grd;
+                ctx.beginPath();
+                ctx.arc($scope.position.x, $scope.position.y, $scope.radius * 18, 0, 360, false);
+                ctx.fill();
+                ctx.save();
+            }
+        };
+
+        $scope.init();
+        return $scope;
+    };
+
+    var Vector2 = function (x, y) {
+        if (!x)x = 0;
+        if (!y)y = 0;
+        var $scope = {
+            x: x,
+            y: y,
+            add: function (vector, scale) {
+                scale = scale || 1;
+                $scope.x += vector.x * scale;
+                $scope.y += vector.y * scale;
+                return $scope;
+            },
+            set: function (x, y) {
+                $scope.x = x;
+                $scope.y = y;
+                return $scope;
+            },
+            scale: function (multiplier) {
+                $scope.x *= multiplier;
+                $scope.y *= multiplier;
+                return $scope;
+            },
+            clamp: function (min, max) {
+                $scope.x = Math.min(Math.max($scope.x, min), max);
+                $scope.y = Math.min(Math.max($scope.y, min), max);
+                return $scope;
+            },
+            clampAbs: function (val) {
+                $scope.clamp(-val, val);
+                return $scope;
+            },
+            distance: function (vector) {
+                return Math.sqrt($scope.distanceSquare(vector));
+            },
+            distanceSquare: function (vector) {
+                var dX = Math.pow(vector.x - $scope.x, 2);
+                var dY = Math.pow(vector.y - $scope.y, 2);
+                return dX + dY;
+            }
+
+        };
+        return $scope;
+    };
+
+
+    var canvas = $('<canvas></canvas>');
+    canvas.attr("height", screen.height);
+    canvas.attr("width", screen.width);
+    $(document.body).append(canvas);
+
+    var scene = new Stage(canvas);
+
+    for (var x = 0; x < 150; x++) {
+        var p = new Particle(new Vector2(Math.random() * scene.width, Math.random() * scene.height), scene);
+    }
+
+    window.requestAnimationFrame(scene.draw);
+
+    scene.draw();
+</script>
+</body>
+</html>
