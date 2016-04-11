@@ -10,10 +10,7 @@
         }
 
         canvas {
-            width: 100%;
-            height: 100%;
             background: #160831 radial-gradient(#160831, #160831, #000);
-
         }
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
@@ -26,7 +23,7 @@
         var $scope = {
             width: el.width() * 1,
             height: el.height() * 1,
-            threshold: 150,
+            threshold: 100,
             ctx: el[0].getContext('2d'),
             nodes: [],
             init: function () {
@@ -106,7 +103,7 @@
             init: function () {
                 $scope.stage.addNode($scope);
                 $scope.radius = Math.random() * 2 + 0.05;
-                $scope.maxSpeed = Math.random() * 5 + 0.1;
+                $scope.maxSpeed = Math.random() * 2 + 0.1;
                 if(Math.random() > 0.7) {
                     $scope.colour.red = Math.round(Math.random() * 200 + 55);
                     $scope.colour.green = Math.round(Math.random() * 200 + 55);
@@ -209,13 +206,13 @@
 
 
     var canvas = $('<canvas></canvas>');
-    canvas.attr("height", screen.height);
-    canvas.attr("width", screen.width);
+    canvas.attr("height", $(window).height());
+    canvas.attr("width", $(window).width());
     $(document.body).append(canvas);
 
     var scene = new Stage(canvas);
 
-    for (var x = 0; x < 150; x++) {
+    for (var x = 0; x < 100; x++) {
         var p = new Particle(new Vector2(Math.random() * scene.width, Math.random() * scene.height), scene);
     }
 
